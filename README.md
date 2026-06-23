@@ -1,5 +1,7 @@
 # エッジAI 予防保守・異常検知パイプライン（PoC）
 
+[English README →](README.en.md)
+
 ![status](https://img.shields.io/badge/status-proof--of--concept-orange)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![python](https://img.shields.io/badge/python-3.9%2B-blue)
