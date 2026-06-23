@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# 生成物（スクリプトで決定論的に再生成できるためコミットしない）
+data/*.csv
+models/*.cbm
+models/*.json
+
+# エディタ / OS / ローカルツール
+.claude/
+.vscode/
+.idea/
+.DS_Store
