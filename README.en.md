@@ -6,7 +6,7 @@
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![python](https://img.shields.io/badge/python-3.9%2B-blue)
 
-A reference implementation of a **fully-local, low-resource** edge-AI pipeline for vibration/temperature sensors on large-scale infrastructure (railways, power grids). It demonstrates production-grade practice end to end: leak-free validation, feature selection, hyperparameter optimization, and low-latency / low-memory inference.
+A reference implementation of a **fully-local, low-resource** edge-AI pipeline for vibration/temperature sensors on infrastructure equipment (railways, power grids). It demonstrates production-grade practice end to end: leak-free validation, feature selection, hyperparameter optimization, and low-latency / low-memory inference.
 
 > ⚠️ **This is a synthetic-data Proof of Concept.**
 > The sensor data is **dummy data** generated deterministically by `data/generate_data.py`,
