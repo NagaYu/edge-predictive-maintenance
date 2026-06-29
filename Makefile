@@ -1,4 +1,4 @@
-# エッジAI 予防保守デモ — ワンコマンド実行
+# Edge-AI predictive-maintenance demo — one-command run
 .PHONY: all install data train infer demo clean
 
 all: demo
@@ -15,7 +15,7 @@ train:
 infer:
 	python3 src/edge_inference.py
 
-# データ生成 → 学習 → 推論 を一気通貫で実行
+# Run the whole pipeline end to end: generate data -> train -> infer
 demo: data train infer
 
 clean:

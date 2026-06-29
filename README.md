@@ -1,7 +1,5 @@
 # Edge AI for Predictive Maintenance & Anomaly Detection (PoC)
 
-[日本語版 README →](README.ja.md)
-
 ![status](https://img.shields.io/badge/status-proof--of--concept-orange)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![python](https://img.shields.io/badge/python-3.9%2B-blue)
