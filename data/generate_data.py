@@ -1,12 +1,14 @@
 """
-インフラ（鉄道・送電網）の振動・温度センサーを模したダミーデータ生成スクリプト。
+Generate dummy data emulating vibration/temperature sensors on infrastructure
+equipment (railways, power grids).
 
-- 正常運転：基準値まわりに緩やかな日内変動 + ノイズ
-- 異常パターン:
-    1) 予兆型 (gradual): 一定区間にかけて値がじわじわ上昇し、最後に異常としてラベル付け
-    2) スパイク型 (spike): 突発的に値が跳ね上がる単発異常
-- 異常率は全体の約1%に調整
-- train / test の2ファイルを出力
+- Normal operation: a gentle daily oscillation around a baseline + noise.
+- Anomaly patterns:
+    1) gradual: values slowly ramp up over a region; only the tail is labeled
+       anomalous (so the model can learn the early "precursor" signature).
+    2) spike: a sudden, single-point burst.
+- The anomaly rate is tuned to ~1% of all rows.
+- Outputs two files: train and test.
 """
 
 import numpy as np
@@ -14,17 +16,17 @@ import pandas as pd
 
 RNG = np.random.default_rng(42)
 
-# センサーの正常運転時の基準値
-VIB_BASE = 2.0       # 振動 (mm/s 相当)
+# Baseline values during normal operation
+VIB_BASE = 2.0       # vibration (≈ mm/s)
 VIB_NOISE = 0.15
-TEMP_BASE = 45.0     # 温度 (degC 相当)
+TEMP_BASE = 45.0     # temperature (≈ degC)
 TEMP_NOISE = 0.8
 
 
 def _base_signal(n: int, start_idx: int = 0) -> pd.DataFrame:
-    """正常運転のベース信号（緩やかな日内変動 + ノイズ）を生成する。"""
+    """Generate the normal-operation base signal (gentle daily drift + noise)."""
     t = np.arange(start_idx, start_idx + n)
-    # 1日 = 1440分周期の緩やかな変動を模す
+    # Emulate a gentle oscillation with a 1-day (1440-minute) period
     daily_vib = 0.25 * np.sin(2 * np.pi * t / 1440.0)
     daily_temp = 3.0 * np.sin(2 * np.pi * t / 1440.0 + 0.5)
 
@@ -42,9 +44,10 @@ def _base_signal(n: int, start_idx: int = 0) -> pd.DataFrame:
 
 
 def _inject_gradual(df: pd.DataFrame, center: int, length: int) -> None:
-    """予兆型異常: center を中心に length 区間で値が上昇していく劣化を注入。
+    """Inject a gradual degradation centered at `center`, ramping over `length`.
 
-    異常ラベルは上昇がピークに達する終盤のみに付与する（予兆を学習させる狙い）。
+    Only the final portion of the ramp is labeled anomalous (to teach the
+    precursor signature rather than the fully-degraded state).
     """
     n = len(df)
     start = max(0, center - length // 2)
@@ -52,17 +55,17 @@ def _inject_gradual(df: pd.DataFrame, center: int, length: int) -> None:
     span = end - start
     if span <= 0:
         return
-    # 0 -> 1 へ単調増加するランプ
+    # Monotonic ramp from 0 -> 1
     ramp = np.linspace(0.0, 1.0, span)
-    df.loc[start:end - 1, "sensor_vibration"] += ramp * 4.5   # 振動が増大
-    df.loc[start:end - 1, "sensor_temperature"] += ramp * 18.0  # 温度も上昇
-    # 終盤25%を異常としてラベル付け
+    df.loc[start:end - 1, "sensor_vibration"] += ramp * 4.5    # vibration grows
+    df.loc[start:end - 1, "sensor_temperature"] += ramp * 18.0  # temperature rises too
+    # Label the last 25% of the ramp as anomalous
     label_start = start + int(span * 0.75)
     df.loc[label_start:end - 1, "is_anomaly"] = 1
 
 
 def _inject_spike(df: pd.DataFrame, idx: int) -> None:
-    """スパイク型異常: 単発の突発スパイクを注入。"""
+    """Inject a single-point spike anomaly."""
     df.loc[idx, "sensor_vibration"] += RNG.uniform(6.0, 9.0)
     df.loc[idx, "sensor_temperature"] += RNG.uniform(15.0, 25.0)
     df.loc[idx, "is_anomaly"] = 1
@@ -71,11 +74,11 @@ def _inject_spike(df: pd.DataFrame, idx: int) -> None:
 def generate(n: int, start_idx: int, seed_offset: int) -> pd.DataFrame:
     df = _base_signal(n, start_idx=start_idx)
 
-    target_anom = int(n * 0.01)  # 異常率 約1%
+    target_anom = int(n * 0.01)  # anomaly rate ≈ 1%
 
-    # 予兆型: 各イベントが終盤25%(=length*0.25)分のラベルを生む
-    grad_length = 200                       # 1イベントの全長
-    labels_per_grad = int(grad_length * 0.25)  # 約50ラベル
+    # Gradual: each event produces tail labels (= length * 0.25)
+    grad_length = 200                          # full length of one event
+    labels_per_grad = int(grad_length * 0.25)  # ≈ 50 labels
     n_grad_events = max(1, int(target_anom * 0.6) // labels_per_grad)
     n_grad_events = max(1, n_grad_events)
 
@@ -88,7 +91,7 @@ def generate(n: int, start_idx: int, seed_offset: int) -> pd.DataFrame:
 
     grad_label_count = int(df["is_anomaly"].sum())
 
-    # スパイク型: 残りの異常枠を単発スパイクで埋める
+    # Spike: fill the remaining anomaly budget with single-point spikes
     n_spikes = max(1, target_anom - grad_label_count)
     placed = 0
     attempts = 0
@@ -104,7 +107,7 @@ def generate(n: int, start_idx: int, seed_offset: int) -> pd.DataFrame:
 
 
 def main():
-    # 時刻列を 1分間隔で付与
+    # Attach a timestamp column at 1-minute intervals
     train = generate(n=20000, start_idx=0, seed_offset=0)
     test = generate(n=8000, start_idx=20000, seed_offset=1)
 
